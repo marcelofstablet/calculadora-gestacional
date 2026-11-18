@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de Idade Gestacional</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#182230;--muted:#64748b;--line:#dbe2ea;--accent:#2563eb;--soft:#eff6ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Arial,Helvetica,sans-serif}
+main{max-width:760px;margin:28px auto;padding:0 16px 36px}
+h1{font-size:clamp(24px,4vw,32px);margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 4px 18px #1822300a}
+h2{font-size:19px;margin:0 0 14px}
+.tabs{display:flex;gap:8px;background:#e8edf5;padding:6px;border-radius:12px;margin:0 0 16px}
+.tab{flex:1;background:transparent;color:#475569;padding:12px 10px;border-radius:9px}
+.tab[aria-selected="true"]{background:#fff;color:var(--accent);box-shadow:0 1px 5px #18223018}
+.field label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+input{width:100%;padding:12px;border:1px solid #b9c5d3;border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
+input:focus{outline:3px solid #2563eb22;border-color:var(--accent)}
+.hint,.note{font-size:13px;color:var(--muted);margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+button{border:0;border-radius:10px;background:var(--accent);color:#fff;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer}
+button:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+.actions{margin-top:16px}
+.result{background:var(--soft);border:1px solid #d8e8ff;border-radius:12px;padding:16px;margin-top:16px}
+.result .k{font-size:13px;color:#49617f;font-weight:700}
+.result .v{font-size:26px;font-weight:800;margin-top:4px;color:#123b78}
+.result .small{font-size:14px;color:#49617f;margin-top:4px}
+.hidden{display:none!important}
+.tabpanel[hidden]{display:none}
+footer{font-size:12px;color:var(--muted);margin:18px 2px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.panel{padding:16px}main{margin-top:18px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Calculadora de Idade Gestacional</h1>
+<p class="sub">Escolha o método de cálculo na aba correspondente.</p>
+<div id="browserNotice" class="note" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px">
+Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrome (o visualizador de arquivos/anexos pode não executar JavaScript).
+</div>
+
+<section class="panel">
+<div class="field">
+<label for="refDate">Calcular idade gestacional em:</label>
+<input type="date" id="refDate">
+<div class="hint">A data de hoje é preenchida automaticamente, mas pode ser alterada.</div>
+</div>
+</section>
+
+<section class="panel">
+<div class="tabs" role="tablist" aria-label="Método de cálculo">
+<button class="tab" id="tab-fum" role="tab" aria-selected="true" aria-controls="panel-fum" type="button">Por FUM</button>
+<button class="tab" id="tab-eco" role="tab" aria-selected="false" aria-controls="panel-eco" type="button">Por ECO</button>
+</div>
+
+<div id="panel-fum" class="tabpanel" role="tabpanel" aria-labelledby="tab-fum">
+<h2>Idade gestacional pela FUM / DUM</h2>
+<div class="field">
+<label for="fum">Data da última menstruação</label>
+<input type="date" id="fum">
+</div>
+<div class="actions"><button type="button" id="calcFum">Calcular pela FUM</button></div>
+<div id="fumOut" class="hidden" aria-live="polite"></div>
+</div>
+
+<div id="panel-eco" class="tabpanel" role="tabpanel" aria-labelledby="tab-eco" hidden>
+<h2>Idade gestacional pela ecografia</h2>
+<p class="note">Informe a idade gestacional descrita no laudo e a data em que a ecografia foi realizada.</p>
+<div class="grid">
+<div class="field">
+<label for="ecoDate">Data da ecografia</label>
+<input type="date" id="ecoDate">
+</div>
+<div class="field">
+<label for="ecoWeeks">Semanas na ECO</label>
+<input type="number" id="ecoWeeks" min="0" max="45" step="1" placeholder="Ex.: 12">
+</div>
+<div class="field">
+<label for="ecoDays">Dias adicionais</label>
+<input type="number" id="ecoDays" min="0" max="6" step="1" value="0">
+<div class="hint">Ex.: 12 semanas e 3 dias.</div>
+</div>
+</div>
+<div class="actions"><button type="button" id="calcEco">Calcular pela ECO</button></div>
+<div id="ecoOut" class="hidden" aria-live="polite"></div>
+</div>
+</section>
+
+<footer><strong>Nota clínica:</strong> a datação obstétrica deve considerar a confiabilidade da FUM, a regularidade do ciclo e a ecografia mais precoce adequada. A ecografia tardia tem menor precisão para datar a gestação. Esta ferramenta é um apoio de cálculo e não substitui avaliação obstétrica nem protocolos locais.</footer>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+const $ = id => document.getElementById(id);
+const DAY=86400000;
+function parseDate(value){
+ if(!value)return null;
+ const [y,m,d]=value.split('-').map(Number);
+ return new Date(Date.UTC(y,m-1,d));
+}
+function addDays(date,n){return new Date(date.getTime()+n*DAY)}
+function diffDays(a,b){return Math.round((b-a)/DAY)}
+function fmt(date){return new Intl.DateTimeFormat('pt-BR',{timeZone:'UTC'}).format(date)}
+function gaText(days){return `${Math.floor(days/7)} semanas e ${days%7} dias`}
+function referenceDate(){
+ const ref=parseDate($('refDate').value);
+ if(!ref)alert('Informe a data de referência.');
+ return ref;
+}
+function showResult(target,method,days,edd){
+ target.innerHTML=`<div class="result">
+ <div class="k">Idade gestacional ${method}</div>
+ <div class="v">${gaText(days)}</div>
+ <div class="small">${days} dias de gestação na data de referência (${fmt(parseDate($('refDate').value))})</div>
+ <div class="k" style="margin-top:14px">Data provável do parto (DPP)</div>
+ <div class="v" style="font-size:23px">${fmt(edd)}</div>
+ <div class="small">Estimativa calculada para 40 semanas.</div>
+ </div>`;
+ target.classList.remove('hidden');
+}
+$('calcFum').addEventListener('click',()=>{
+ const fum=parseDate($('fum').value),ref=referenceDate();
+ if(!fum||!ref){alert('Informe a FUM e a data de referência.');return}
+ const days=diffDays(fum,ref);
+ if(days<0){alert('A FUM não pode ser posterior à data de referência.');return}
+ showResult($('fumOut'),'pela FUM',days,addDays(fum,280));
+});
+$('calcEco').addEventListener('click',()=>{
+ const date=parseDate($('ecoDate').value),ref=referenceDate();
+ const weeks=$('ecoWeeks').value,daysExtra=Number($('ecoDays').value||0);
+ if(!date||weeks===''||!ref){alert('Informe a data da ECO, as semanas e a data de referência.');return}
+ const w=Number(weeks);
+ if(!Number.isInteger(w)||w<0||w>45||!Number.isInteger(daysExtra)||daysExtra<0||daysExtra>6){alert('Confira as semanas e os dias informados na ECO.');return}
+ if(date>ref){alert('A data da ECO não pode ser posterior à data de referência.');return}
+ const elapsed=diffDays(date,ref),total=w*7+daysExtra+elapsed;
+ showResult($('ecoOut'),'pela ECO',total,addDays(date,280-(w*7+daysExtra)));
+});
+function selectTab(which){
+ const fum=which==='fum';
+ $('tab-fum').setAttribute('aria-selected',String(fum));
+ $('tab-eco').setAttribute('aria-selected',String(!fum));
+ $('panel-fum').hidden=!fum;
+ $('panel-eco').hidden=fum;
+}
+$('tab-fum').addEventListener('click',()=>selectTab('fum'));
+$('tab-eco').addEventListener('click',()=>selectTab('eco'));
+$('refDate').value=(function(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})();
+});
+</script>
+</body>
+</html>
