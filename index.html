@@ -19,9 +19,11 @@ h2{font-size:19px;margin:0 0 14px}
 .field label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
 input{width:100%;padding:12px;border:1px solid #b9c5d3;border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
 input:focus{outline:3px solid #2563eb22;border-color:var(--accent)}
-.date-entry{display:flex;gap:8px;align-items:center}
+.date-entry{display:flex;gap:8px;align-items:center;position:relative}
 .date-entry input[type="text"]{min-width:0;flex:1}
-.date-entry input[type="date"]{width:52px;min-width:52px;padding:9px;cursor:pointer}
+.calendar-btn{width:48px;height:46px;min-width:48px;padding:0;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:9px}
+.calendar-btn svg{width:22px;height:22px}
+.date-entry input[type="date"].calendar-native{position:absolute;right:0;top:0;width:48px;height:46px;margin:0;padding:0;opacity:0;cursor:pointer;z-index:2}
 .hint,.note{font-size:13px;color:var(--muted);margin-top:6px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 button{border:0;border-radius:10px;background:var(--accent);color:#fff;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer}
@@ -48,7 +50,9 @@ Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrom
 <section class="panel">
 <div class="field">
 <label for="refDate">Calcular idade gestacional em:</label>
-<div class="date-entry"><input type="text" id="refDate" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><input type="date" id="refPicker" aria-label="Selecionar data de referência no calendário" title="Escolher no calendário"></div>
+<div class="date-entry"><input type="text" id="refDate" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><button class="calendar-btn" type="button" tabindex="-1" aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"></path></svg>
+</button><input type="date" class="calendar-native" id="refPicker" aria-label="Selecionar data de referência no calendário" title="Escolher no calendário"></div>
 <div class="hint">Digite no formato DD/MM/AAAA ou escolha pelo calendário ao lado.</div>
 </div>
 </section>
@@ -63,7 +67,9 @@ Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrom
 <h2>Idade gestacional pela FUM / DUM</h2>
 <div class="field">
 <label for="fum">Data da última menstruação</label>
-<div class="date-entry"><input type="text" id="fum" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><input type="date" id="fumPicker" aria-label="Selecionar FUM no calendário" title="Escolher no calendário"></div>
+<div class="date-entry"><input type="text" id="fum" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><button class="calendar-btn" type="button" tabindex="-1" aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"></path></svg>
+</button><input type="date" class="calendar-native" id="fumPicker" aria-label="Selecionar FUM no calendário" title="Escolher no calendário"></div>
 </div>
 <div class="actions"><button type="button" id="calcFum">Calcular pela FUM</button></div>
 <div id="fumOut" class="hidden" aria-live="polite"></div>
@@ -75,7 +81,9 @@ Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrom
 <div class="grid">
 <div class="field">
 <label for="ecoDate">Data da ecografia</label>
-<div class="date-entry"><input type="text" id="ecoDate" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><input type="date" id="ecoPicker" aria-label="Selecionar data da ecografia no calendário" title="Escolher no calendário"></div>
+<div class="date-entry"><input type="text" id="ecoDate" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><button class="calendar-btn" type="button" tabindex="-1" aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"></path></svg>
+</button><input type="date" class="calendar-native" id="ecoPicker" aria-label="Selecionar data da ecografia no calendário" title="Escolher no calendário"></div>
 </div>
 <div class="field">
 <label for="ecoWeeks">Semanas na ECO</label>
