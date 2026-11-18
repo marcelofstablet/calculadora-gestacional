@@ -19,6 +19,9 @@ h2{font-size:19px;margin:0 0 14px}
 .field label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
 input{width:100%;padding:12px;border:1px solid #b9c5d3;border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
 input:focus{outline:3px solid #2563eb22;border-color:var(--accent)}
+.date-entry{display:flex;gap:8px;align-items:center}
+.date-entry input[type="text"]{min-width:0;flex:1}
+.date-entry input[type="date"]{width:52px;min-width:52px;padding:9px;cursor:pointer}
 .hint,.note{font-size:13px;color:var(--muted);margin-top:6px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 button{border:0;border-radius:10px;background:var(--accent);color:#fff;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer}
@@ -45,8 +48,8 @@ Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrom
 <section class="panel">
 <div class="field">
 <label for="refDate">Calcular idade gestacional em:</label>
-<input type="date" id="refDate">
-<div class="hint">A data de hoje é preenchida automaticamente, mas pode ser alterada.</div>
+<div class="date-entry"><input type="text" id="refDate" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><input type="date" id="refPicker" aria-label="Selecionar data de referência no calendário" title="Escolher no calendário"></div>
+<div class="hint">Digite no formato DD/MM/AAAA ou escolha pelo calendário ao lado.</div>
 </div>
 </section>
 
@@ -60,7 +63,7 @@ Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrom
 <h2>Idade gestacional pela FUM / DUM</h2>
 <div class="field">
 <label for="fum">Data da última menstruação</label>
-<input type="date" id="fum">
+<div class="date-entry"><input type="text" id="fum" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><input type="date" id="fumPicker" aria-label="Selecionar FUM no calendário" title="Escolher no calendário"></div>
 </div>
 <div class="actions"><button type="button" id="calcFum">Calcular pela FUM</button></div>
 <div id="fumOut" class="hidden" aria-live="polite"></div>
@@ -72,7 +75,7 @@ Se os botões não responderem, abra este arquivo diretamente no Safari ou Chrom
 <div class="grid">
 <div class="field">
 <label for="ecoDate">Data da ecografia</label>
-<input type="date" id="ecoDate">
+<div class="date-entry"><input type="text" id="ecoDate" inputmode="numeric" autocomplete="off" placeholder="DD/MM/AAAA" maxlength="10"><input type="date" id="ecoPicker" aria-label="Selecionar data da ecografia no calendário" title="Escolher no calendário"></div>
 </div>
 <div class="field">
 <label for="ecoWeeks">Semanas na ECO</label>
@@ -97,8 +100,26 @@ const $ = id => document.getElementById(id);
 const DAY=86400000;
 function parseDate(value){
  if(!value)return null;
- const [y,m,d]=value.split('-').map(Number);
- return new Date(Date.UTC(y,m-1,d));
+ const v=value.trim(); let y,m,d;
+ if(/^\d{2}\/\d{2}\/\d{4}$/.test(v)){[d,m,y]=v.split('/').map(Number)}
+ else if(/^\d{4}-\d{2}-\d{2}$/.test(v)){[y,m,d]=v.split('-').map(Number)}
+ else return null;
+ const date=new Date(Date.UTC(y,m-1,d));
+ if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d)return null;
+ return date;
+}
+function toISO(date){return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,'0')}-${String(date.getUTCDate()).padStart(2,'0')}`}
+function toBR(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return `${d}/${m}/${y}`}
+function attachDateInput(textId,pickerId){
+ const text=$(textId),picker=$(pickerId);
+ text.addEventListener('input',()=>{
+  const digits=text.value.replace(/\D/g,'').slice(0,8);
+  if(digits.length>4)text.value=digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+  else if(digits.length>2)text.value=digits.slice(0,2)+'/'+digits.slice(2);
+  else text.value=digits;
+  const parsed=parseDate(text.value);picker.value=parsed?toISO(parsed):'';
+ });
+ picker.addEventListener('change',()=>{text.value=toBR(picker.value)});
 }
 function addDays(date,n){return new Date(date.getTime()+n*DAY)}
 function diffDays(a,b){return Math.round((b-a)/DAY)}
@@ -106,7 +127,7 @@ function fmt(date){return new Intl.DateTimeFormat('pt-BR',{timeZone:'UTC'}).form
 function gaText(days){return `${Math.floor(days/7)} semanas e ${days%7} dias`}
 function referenceDate(){
  const ref=parseDate($('refDate').value);
- if(!ref)alert('Informe a data de referência.');
+ if(!ref)alert('Informe uma data válida no formato DD/MM/AAAA ou escolha no calendário.')
  return ref;
 }
 function showResult(target,method,days,edd){
@@ -146,7 +167,13 @@ function selectTab(which){
 }
 $('tab-fum').addEventListener('click',()=>selectTab('fum'));
 $('tab-eco').addEventListener('click',()=>selectTab('eco'));
-$('refDate').value=(function(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})();
+attachDateInput('refDate','refPicker');
+attachDateInput('fum','fumPicker');
+attachDateInput('ecoDate','ecoPicker');
+const today=new Date();
+const todayISO=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+$('refDate').value=toBR(todayISO);
+$('refPicker').value=todayISO;
 });
 </script>
 </body>
